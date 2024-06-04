@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distancia entre Puntos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #canvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #ccc;
+            cursor: crosshair;
+        }
+
+        p {
+            text-align: center;
+        }
+
+        #distancia {
+            font-weight: bold;
+            color: blue;
+        }
+
+        #unidad-selector {
+            text-align: center;
+        }
+
+        #propiedades {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        #propiedades h2 {
+            text-align: center;
+        }
+
+        #propiedades ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #propiedades li {
+            margin-bottom: 20px;
+        }
+
+        .property-valid {
+            color: green;
+        }
+
+        .property-invalid {
+            color: red;
+        }
+
+        .descripcion {
+            font-size: 0.9em;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Distancia entre Puntos</h1>
+    <canvas id="canvas" width="400" height="400"></canvas>
+    <p>Haz clic en dos puntos en el plano para calcular la distancia entre ellos.</p>
+    <p>La distancia entre los puntos es: <span id="distancia"></span></p>
+    <div id="unidad-selector">
+        <label for="unidad">Unidad:</label>
+        <select id="unidad">
+            <option value="pixels">Pixels</option>
+            <option value="pulgadas">Pulgadas</option>
+            <option value="centimetros">Centímetros</option>
+            <!-- Añadir más opciones de unidad si es necesario -->
+        </select>
+    </div>
+    <button onclick="reiniciar()">Reiniciar</button>
+
+    <div id="propiedades">
+        <h2>Propiedades de la Función Distancia</h2>
+        <ul id="lista-propiedades">
+            <li id="propiedad-no-negatividad">No Negatividad (Positividad): <span class="resultado"></span>
+                <div class="descripcion">La distancia entre dos puntos siempre es mayor o igual a cero.</div>
+            </li>
+            <li id="propiedad-identidad">Identidad del Indiscernible: <span class="resultado"></span>
+                <div class="descripcion">La distancia es cero si y solo si los dos puntos son idénticos.</div>
+            </li>
+            <li id="propiedad-simetria">Simetría: <span class="resultado"></span>
+                <div class="descripcion">La distancia entre dos puntos es la misma independientemente del orden de los puntos.</div>
+            </li>
+            <li id="propiedad-triangular">Desigualdad Triangular: <span class="resultado"></span>
+                <div class="descripcion">La suma de las distancias de dos lados de un triángulo siempre es mayor o igual a la distancia del tercer lado.</div>
+            </li>
+            <li id="propiedad-traslacion">Invariancia bajo traslaciones: <span class="resultado"></span>
+                <div class="descripcion">La distancia entre dos puntos no cambia si ambos puntos se trasladan de la misma manera.</div>
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const distanciaSpan = document.getElementById('distancia');
+        const unidadSelector = document.getElementById('unidad');
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const scale = 20; // Ajusta el tamaño de los intervalos en el plano
+
+        let puntos = [];
+
+        dibujarPlanoCartesiano();
+
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (event.clientX - rect.left - centerX) / scale;
+            const y = (centerY - event.clientY + rect.top) / scale; // Invertir la coordenada Y
+            puntos.push({ x, y });
+
+            if (puntos.length === 2) {
+                const distancia = calcularDistancia(puntos[0], puntos[1]);
+                distanciaSpan.textContent = distancia.toFixed(2) + " " + unidadSelector.value;
+                dibujarPuntos();
+                dibujarLinea();
+                verificarPropiedades(puntos[0], puntos[1], distancia);
+                puntos = [];
+            } else {
+                dibujarPuntos();
+            }
+        });
+
+        function calcularDistancia(punto1, punto2) {
+            const dx = punto2.x - punto1.x;
+            const dy = punto2.y - punto1.y;
+            const unidad = unidadSelector.value;
+            let distancia;
+
+            switch (unidad) {
+                case 'pixels':
+                    distancia = Math.sqrt(dx * dx + dy * dy) * scale;
+                    break;
+                case 'pulgadas':
+                    distancia = Math.sqrt(dx * dx + dy * dy) * scale / 96; // 1 pulgada = 96 pixels (aproximadamente)
+                    break;
+                case 'centimetros':
+                    distancia = Math.sqrt(dx * dx + dy * dy) * scale / 37.8; // 1 centímetro = 37.8 pixels (aproximadamente)
+                    break;
+                // Agregar más casos si es necesario para otras unidades de medida
+                default:
+                    distancia = Math.sqrt(dx * dx + dy * dy) * scale;
+            }
+
+            return distancia;
+        }
+
+        function dibujarPuntos() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            dibujarPlanoCartesiano();
+            puntos.forEach(punto => {
+                ctx.beginPath();
+                ctx.arc(punto.x * scale + centerX, -punto.y * scale + centerY, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'blue';
+                ctx.fill();
+            });
+        }
+
+        function dibujarLinea() {
+            ctx.beginPath();
+            ctx.moveTo(puntos[0].x * scale + centerX, -puntos[0].y * scale + centerY);
+            ctx.lineTo(puntos[1].x * scale + centerX, -puntos[1].y * scale + centerY);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function dibujarPlanoCartesiano() {
+            ctx.beginPath();
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, canvas.height);
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(canvas.width, centerY);
+            ctx.strokeStyle = '#999';
+            ctx.stroke();
+
+            // Dibujar los intervalos del eje X
+            for (let x = centerX + scale; x < canvas.width; x += scale) {
+                ctx.beginPath();
+                ctx.moveTo(x, centerY - 5);
+                ctx.lineTo(x, centerY + 5);
+                ctx.strokeStyle = '#999';
+                ctx.stroke();
+            }
+            for (let x = centerX - scale; x > 0; x -= scale) {
+                ctx.beginPath();
+                ctx.moveTo(x, centerY - 5);
+                ctx.lineTo(x, centerY + 5);
+                ctx.strokeStyle = '#999';
+                ctx.stroke();
+            }
+
+            // Dibujar los intervalos del eje Y
+            for (let y = centerY + scale; y < canvas.height; y += scale) {
+                ctx.beginPath();
+                ctx.moveTo(centerX - 5, y);
+                ctx.lineTo(centerX + 5, y);
+                ctx.strokeStyle = '#999';
+                ctx.stroke();
+            }
+            for (let y = centerY - scale; y > 0; y -= scale) {
+                ctx.beginPath();
+                ctx.moveTo(centerX - 5, y);
+                ctx.lineTo(centerX + 5, y);
+                ctx.strokeStyle = '#999';
+                ctx.stroke();
+            }
+        }
+
+        function reiniciar() {
+            puntos = [];
+            distanciaSpan.textContent = "";
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            dibujarPlanoCartesiano();
+            resetearPropiedades();
+        }
+
+        function verificarPropiedades(punto1, punto2, distancia) {
+            // No Negatividad (Positividad)
+            const noNegatividad = distancia >= 0;
+            actualizarPropiedad('propiedad-no-negatividad', noNegatividad);
+
+            // Identidad del Indiscernible
+            const identidad = distancia === 0 ? (punto1.x === punto2.x && punto1.y === punto2.y) : (punto1.x !== punto2.x || punto1.y !== punto2.y);
+            actualizarPropiedad('propiedad-identidad', identidad);
+
+            // Simetría
+            const simetria = calcularDistancia(punto2, punto1) === distancia;
+            actualizarPropiedad('propiedad-simetria', simetria);
+
+            // Desigualdad Triangular
+            const punto3 = { x: Math.random() * 10 - 5, y: Math.random() * 10 - 5 }; // Punto aleatorio
+            const d1 = calcularDistancia(punto1, punto3);
+            const d2 = calcularDistancia(punto2, punto3);
+            const desigualdadTriangular = distancia <= d1 + d2;
+            actualizarPropiedad('propiedad-triangular', desigualdadTriangular);
+
+            // Invariancia bajo traslaciones
+            const traslacion = { x: Math.random() * 10 - 5, y: Math.random() * 10 - 5 }; // Vector de traslación aleatorio
+            const p1Trasladado = { x: punto1.x + traslacion.x, y: punto1.y + traslacion.y };
+            const p2Trasladado = { x: punto2.x + traslacion.x, y: punto2.y + traslacion.y };
+            const distanciaTrasladada = calcularDistancia(p1Trasladado, p2Trasladado);
+            const invarianciaTraslacion = distancia === distanciaTrasladada;
+            actualizarPropiedad('propiedad-traslacion', invarianciaTraslacion);
+        }
+
+        function actualizarPropiedad(propiedadId, esValido) {
+            const elemento = document.getElementById(propiedadId).querySelector('.resultado');
+            elemento.textContent = esValido ? 'Cumple' : 'No cumple';
+            elemento.className = esValido ? 'property-valid' : 'property-invalid';
+        }
+
+        function resetearPropiedades() {
+            const propiedades = document.querySelectorAll('.resultado');
+            propiedades.forEach(propiedad => {
+                propiedad.textContent = '';
+                propiedad.className = '';
+            });
+        }
+    </script>
+</body>
+</html>
